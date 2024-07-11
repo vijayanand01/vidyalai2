@@ -8,10 +8,13 @@ const PostContainer = styled.div(() => ({
   border: '1px solid #ccc',
   borderRadius: '5px',
   overflow: 'hidden',
+  padding: '16px',
 }));
 
 const CarouselContainer = styled.div(() => ({
   position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
 }));
 
 const Carousel = styled.div(() => ({
@@ -22,6 +25,7 @@ const Carousel = styled.div(() => ({
   '&::-webkit-scrollbar': {
     display: 'none',
   },
+  scrollSnapType: 'x mandatory',
   position: 'relative',
 }));
 
@@ -46,13 +50,16 @@ const Content = styled.div(() => ({
 
 const Button = styled.button(() => ({
   position: 'absolute',
-  bottom: 0,
   backgroundColor: 'rgba(255, 255, 255, 0.5)',
   border: 'none',
   color: '#000',
   fontSize: '20px',
   cursor: 'pointer',
   height: '50px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1,
 }));
 
 const PrevButton = styled(Button)`
@@ -63,13 +70,43 @@ const NextButton = styled(Button)`
   right: 10px;
 `;
 
+const UserInfo = styled.div(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: '10px',
+}));
+
+const Avatar = styled.div(() => ({
+  width: '40px',
+  height: '40px',
+  borderRadius: '50%',
+  backgroundColor: '#007bff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: '10px',
+  fontSize: '20px',
+  color: '#fff',
+}));
+
+const UserName = styled.div(() => ({
+  fontSize: '18px',
+  fontWeight: 'bold',
+}));
+
+const UserEmail = styled.div(() => ({
+  fontSize: '14px',
+  color: '#6c757d',
+}));
+
 const Post = ({ post }) => {
   const carouselRef = useRef(null);
 
   const handleNextClick = () => {
     if (carouselRef.current) {
+      const imageWidth = carouselRef.current.querySelector('img').clientWidth + 20; // Including padding
       carouselRef.current.scrollBy({
-        left: 50,
+        left: imageWidth,
         behavior: 'smooth',
       });
     }
@@ -77,16 +114,31 @@ const Post = ({ post }) => {
 
   const handlePrevClick = () => {
     if (carouselRef.current) {
+      const imageWidth = carouselRef.current.querySelector('img').clientWidth + 20; // Including padding
       carouselRef.current.scrollBy({
-        left: -70,
+        left: -imageWidth,
         behavior: 'smooth',
       });
     }
   };
 
+  const getInitials = (name) => {
+    const names = name.split(' ');
+    const initials = names.map(n => n.charAt(0)).join('');
+    return initials;
+  };
+
   return (
     <PostContainer>
+      <UserInfo>
+        <Avatar>{getInitials(post.user.name)}</Avatar>
+        <div>
+          <UserName>{post.user.name}</UserName>
+          <UserEmail>{post.user.email}</UserEmail>
+        </div>
+      </UserInfo>
       <CarouselContainer>
+        <PrevButton onClick={handlePrevClick}>&#10094;</PrevButton>
         <Carousel ref={carouselRef}>
           {post.images.map((image, index) => (
             <CarouselItem key={index}>
@@ -94,7 +146,6 @@ const Post = ({ post }) => {
             </CarouselItem>
           ))}
         </Carousel>
-        <PrevButton onClick={handlePrevClick}>&#10094;</PrevButton>
         <NextButton onClick={handleNextClick}>&#10095;</NextButton>
       </CarouselContainer>
       <Content>
@@ -107,12 +158,19 @@ const Post = ({ post }) => {
 
 Post.propTypes = {
   post: PropTypes.shape({
-    content: PropTypes.any,
-    images: PropTypes.shape({
-      map: PropTypes.func,
-    }),
-    title: PropTypes.any,
-  }),
+    id: PropTypes.number,
+    title: PropTypes.string,
+    body: PropTypes.string,
+    images: PropTypes.arrayOf(
+      PropTypes.shape({
+        url: PropTypes.string
+      })
+    ),
+    user: PropTypes.shape({
+      name: PropTypes.string,
+      email: PropTypes.string
+    })
+  }).isRequired,
 };
 
 export default Post;

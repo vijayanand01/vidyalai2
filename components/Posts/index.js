@@ -5,10 +5,20 @@ import Post from './Post';
 import Container from '../common/Container';
 import useWindowWidth from '../hooks/useWindowWidth';
 
+const CarouselContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+`;
+
 const PostListContainer = styled.div(() => ({
   display: 'flex',
   flexWrap: 'wrap',
   justifyContent: 'center',
+  transition: 'transform 0.5s ease', // Add transition for smooth sliding effect
 }));
 
 const LoadMoreButton = styled.button(() => ({
@@ -32,44 +42,72 @@ const LoadMoreButton = styled.button(() => ({
   },
 }));
 
+const ShowMoreButton = styled.button`
+  margin-top: 10px;
+  margin-bottom: 20px; /* Adjust margin as needed */
+  margin-left: 650px;
+  padding: 10px 20px;
+  background-color: #28a745; /* Green color for "Show More" button */
+  color: white;
+  border: none;
+  cursor: pointer;
+`;
+
 export default function Posts() {
   const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visiblePosts, setVisiblePosts] = useState(4); // Initial number of posts to display
+  const [hasMorePosts, setHasMorePosts] = useState(true); // Flag to track if there are more posts to load
   const { isSmallerDevice } = useWindowWidth();
 
   useEffect(() => {
-    const fetchPost = async () => {
-      const { data: posts } = await axios.get('/api/v1/posts', {
-        params: { start: 0, limit: isSmallerDevice ? 5 : 10 },
-      });
-      setPosts(posts);
-    };
-
-    fetchPost();
+    fetchPostsData();
   }, [isSmallerDevice]);
 
-  const handleClick = () => {
-    setIsLoading(true);
+  const fetchPostsData = async () => {
+    try {
+      const { data: initialPostsData } = await axios.get('/api/v1/posts'); // Fetch all posts initially
+      const { data: usersData } = await axios.get('https://jsonplaceholder.typicode.com/users');
 
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
+      // Combine post data with user data
+      const postsWithUsers = initialPostsData.map(post => ({
+        ...post,
+        user: usersData.find(user => user.id === post.userId)
+      }));
+
+      setPosts(postsWithUsers);
+    } catch (error) {
+      console.error('Error fetching posts or users:', error);
+    }
+  };
+
+  const handlePrevClick = () => {
+    setCurrentIndex(currentIndex => Math.max(currentIndex - 1, 0));
+  };
+
+  const handleNextClick = () => {
+    setCurrentIndex(currentIndex => Math.min(currentIndex + 1, posts.length - 1));
+  };
+
+  const handleShowMore = () => {
+    setVisiblePosts(posts.length); // Show all fetched posts
+    setHasMorePosts(false); // No more posts to load
   };
 
   return (
     <Container>
-      <PostListContainer>
-        {posts.map(post => (
-          <Post post={post} />
-        ))}
-      </PostListContainer>
-
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <LoadMoreButton onClick={handleClick} disabled={isLoading}>
-          {!isLoading ? 'Load More' : 'Loading...'}
-        </LoadMoreButton>
-      </div>
+      <CarouselContainer>
+        <PostListContainer style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+          {posts.slice(0, visiblePosts).map(post => (
+            <Post key={post.id} post={post} />
+          ))}
+        </PostListContainer>
+      </CarouselContainer>
+      {hasMorePosts && (
+        <ShowMoreButton onClick={handleShowMore}>
+          Load More
+        </ShowMoreButton>
+      )}
     </Container>
   );
 }
